@@ -13,7 +13,6 @@ from tensorflow.keras.layers import GRU
 from tensorflow.keras.layers import Dense
 
 df1 = pd.read_csv('FeaturedDataset.csv')
-
 df = df1.drop(['url'],axis=1).copy()
 
 x = df.drop('label',axis=1)
@@ -33,9 +32,9 @@ x_test = x_test.values.reshape(x_test.shape[0],x_test.shape[1],1)
 
 #creating model
 model = Sequential()
-model.add(LSTM(50,return_sequences=True, input_shape=(14,1)))
-model.add(LSTM(50, return_sequences=True))
-model.add(LSTM(50))
+model.add(GRU(50,return_sequences=True, input_shape=(14,1)))
+model.add(GRU(50, return_sequences=True))
+model.add(GRU(50))
 model.add(Dense(1))
 model.compile(loss='mean_squared_error', optimizer='adam',metrics=['accuracy'])
 model.summary()
@@ -53,4 +52,4 @@ print(precision_score(y_test, classes_y))
 print(recall_score(y_test, classes_y))
 print(f1_score(y_test, classes_y))
 
-model.save('modelLSTM.h5')
+model.save('modelGRU.h5')
