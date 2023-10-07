@@ -167,7 +167,181 @@ def extract_features(url):
         df['DNS_Record']=list
         df.to_csv('test1.csv',index=False)
 
+        #calculating domain age
+        def ageofdomain(url):
+            try:
+                whois_info = whois.whois(url)
+                if whois_info.get('domain_name')== None:
+                    days = 1
+                ex = whois_info.get('expiration_date')
+                cd = whois_info.get('creation_date')
+                expiration_date = ex[0]
+                creation_date = cd[0]
+                days = abs((expiration_date - creation_date).days)
+                if days > 360:
+                    days = 0
 
+                return days
+            except :
+                pass
+            try:
+                whois_info = whois.whois(url)
+                if whois_info.get('domain_name')== None:
+                    days = 1
+                ex = whois_info.get('expiration_date')
+                cd = whois_info.get('creation_date')
+                expiration_date = ex
+                creation_date = cd
+                days = abs((expiration_date - creation_date).days)
+                if days > 360:
+                    days = 0
+
+                return days
+            except:
+                pass
+
+            try:
+                whois_info = whois.whois(url)
+                if whois_info.get('domain_name')== None:
+                    days = 1
+                ex = whois_info.get('expiration_date')
+                cd = whois_info.get('creation_date')
+                expiration_date = ex
+                creation_date = cd[0]
+                days = abs((expiration_date - creation_date).days)
+                if days > 360:
+                    days = 0
+
+                return days
+            except:
+                pass
+            try:
+                whois_info = whois.whois(url)
+                if whois_info.get('domain_name')== None:
+                    days = 1
+                ex = whois_info.get('expiration_date')
+                cd = whois_info.get('creation_date')
+                expiration_date = ex[0]
+                creation_date = cd
+                days = abs((expiration_date - creation_date).days)
+                if days > 360:
+                    days = 0
+
+                return days
+            except:
+                return 1
+        list=[]
+        for i in df.url:
+            dns = ageofdomain(i)
+            list.append(dns)
+        df['Domain_age']=list
+        df.to_csv('test1.csv',index=False)
+
+        #domain time until it expires
+        def domaintime(url):
+            try:
+                whois_info = whois.whois(url)
+                if whois_info.get('domain_name')== None:
+                    day = 1
+                ex = whois_info.get('expiration_date')
+                expiration_date = ex[0]
+                nt = datetime.now()
+                days = abs((expiration_date - nt).days)
+                if days > 180:
+                    day = 0
+                else:
+                    day = 1
+                return day
+            except:
+                pass
+
+            try:
+                whois_info = whois.whois(url)
+                if whois_info.get('domain_name')==None:
+                    day = 1
+                ex = whois_info.get('expiration_date')
+                expiration_date = ex
+                nt = datetime.now()
+                days = abs((expiration_date - nt).days)
+                if days > 180:
+                    day = 0
+                else:
+                    day = 1
+                return day
+
+            except:
+                return 1
+
+        list=[]
+        for i in df.url:
+            dns = domaintime(i)
+            list.append(dns)
+        df['Domain_time']=list
+        df.to_csv('test1.csv',index=False)
+
+        #checking iframe in html code
+        def iframe(response):
+            if response == '':
+                return 1
+            else:
+                if re.findall((r'[<iframe>|<frameBorder>]'), response.text):
+                    return 0
+                else:
+                    return 1
+
+        list=[]
+        for i in df.url:
+            try:
+                response = requests.get(i)
+            except:
+                response = ''
+            frame = iframe(response)
+            list.append(frame)
+        df['iFrame']=list
+        df.to_csv('test1.csv',index=False)
+
+        #checking mouse over
+        def mouseOver(response):
+            if response == '':
+                return 1
+            else:
+                if re.findall("<script>.+onmouseover.+</script>", response.text):
+                    return 1
+                else:
+                    return 0
+
+        list=[]
+        for i in df.url:
+            try:
+                response = requests.get(i)
+            except:
+                response = ''
+            fake = mouseOver(response)
+            list.append(fake)
+        df['Mouse_Over'] = list
+        df.to_csv('test1.csv',index=False)
+
+        #checking website is forwarding or not
+        def forwading(response):
+            if response == '':
+                return 1
+            else:
+                if len(response.history)<= 2:
+                    return 0
+                else:
+                    return 1
+
+
+        list= []
+        for i in df.url:
+            try:
+                response = requests.get(i)
+            except:
+                response = ''
+            forward = forwading(response)
+            list.append(forward)
+        df['Web_Forwards'] = list
+        df.to_csv('test1.csv',index=False)
 
 
 if __name__ == "__main__":
