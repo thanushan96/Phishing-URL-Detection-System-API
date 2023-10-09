@@ -28,62 +28,138 @@ import certificate_info
 #%%
 
 
-df = pd.read_csv('NLP_Dataset.csv')
-x= df['url']
-y = df['label']
+# df = pd.read_csv('NLP_Dataset.csv')
+# x= df['url']
+# y = df['label']
 
-voc_size = 10000
-messages = x.copy()
+# voc_size = 10000
+# messages = x.copy()
 
-corpus = []
-for i in range(0, len(messages)):
-    review = re.sub('[^a-zA-Z]',' ',urlparse(messages[i]).netloc)
-    review = review.lower()
-    review = review.split()
-    review=' '.join(review)
-    corpus.append(review)
+# corpus = []
+# for i in range(0, len(messages)):
+#     review = re.sub('[^a-zA-Z]',' ',urlparse(messages[i]).netloc)
+#     review = review.lower()
+#     review = review.split()
+#     review=' '.join(review)
+#     corpus.append(review)
 
-onehot_repr=[one_hot(words,voc_size)for words in corpus]
-sent_length = 50
-embedded_docs= pad_sequences(onehot_repr,padding='pre',maxlen=sent_length)
+# onehot_repr=[one_hot(words,voc_size)for words in corpus]
+# sent_length = 50
+# embedded_docs= pad_sequences(onehot_repr,padding='pre',maxlen=sent_length)
 
-embedded_docs = np.array(embedded_docs)
+# embedded_docs = np.array(embedded_docs)
 
-#x_final = np.array(embedded_docs)
-x_final = embedded_docs
-y_final  = np.array(y)
-from sklearn.model_selection import train_test_split
-x_train,x_test,y_train,y_test = train_test_split(x_final,y_final,test_size=0.20,random_state=15)
-
-
-#make the model and train it
-embedding_vector_features=100
-model = Sequential()
-model.add(Embedding(voc_size,embedding_vector_features,input_length=sent_length))
-model.add(LSTM(100))
-model.add(Dense(1,activation='sigmoid'))
-model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
+# #x_final = np.array(embedded_docs)
+# x_final = embedded_docs
+# y_final  = np.array(y)
+# from sklearn.model_selection import train_test_split
+# x_train,x_test,y_train,y_test = train_test_split(x_final,y_final,test_size=0.20,random_state=15)
 
 
-model.fit(x_train,y_train,validation_data=(x_test,y_test),epochs=2,batch_size=64)
+# #make the model and train it
+# embedding_vector_features=100
+# model = Sequential()
+# model.add(Embedding(voc_size,embedding_vector_features,input_length=sent_length))
+# model.add(LSTM(100))
+# model.add(Dense(1,activation='sigmoid'))
+# model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
 
-y_pred1=model.predict(x_test) 
-classes_y1=np.round(y_pred1).astype(int)
-from sklearn.metrics import confusion_matrix
-confusion_n = confusion_matrix(y_test,classes_y1)
-from sklearn.metrics import accuracy_score
-print(accuracy_score(y_test, classes_y1))
-model.save("model_NLP.h5")
+
+# model.fit(x_train,y_train,validation_data=(x_test,y_test),epochs=2,batch_size=64)
+
+# y_pred1=model.predict(x_test) 
+# classes_y1=np.round(y_pred1).astype(int)
+# from sklearn.metrics import confusion_matrix
+# confusion_n = confusion_matrix(y_test,classes_y1)
+# from sklearn.metrics import accuracy_score
+# print(accuracy_score(y_test, classes_y1))
+# model.save("model_NLP.h5")
 #%%
 from flask import Flask
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app, resources={r"/predict": {"origins": "http://localhost:3000"}})
+CORS(app, resources={
+    r"/predict": {"origins": "http://localhost:3000"},
+    r"/login": {"origins": "http://localhost:3000"},
+    r"/register": {"origins": "http://localhost:3000"}
+})
 # Load NLP and feature-based models
 model = tf.keras.models.load_model('model_NLP.h5')
 modelfeature = tf.keras.models.load_model('stacked_model.h5')
+#%%
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_cors import CORS  # Import CORS for cross-origin requests
 
+# app = Flask(__name__)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root@localhost/DB'
+app.secret_key = 'c3c276452481cef3fae39c2de9475431f1c5ea781dad07be097be89fe0666e09'
+db = SQLAlchemy(app)
+
+# Define the User model
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+
+# Create a function to initialize the database
+def initialize_database():
+    with app.app_context():
+        db.create_all()
+
+# Initialize the database
+initialize_database()
+
+@app.route('/register', methods=['POST'])
+def register():
+    if request.method == 'POST':
+        data = request.get_json()
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+        hashed_password = generate_password_hash(password, method='sha256')
+        
+        new_user = User(username=username, email=email, password=hashed_password)
+        db.session.add(new_user)
+        db.session.commit()
+        
+        return jsonify(message='Registration successful. Please log in.')
+
+@app.route('/login', methods=['POST'])
+def login():
+    if request.method == 'POST':
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        
+        user = User.query.filter_by(username=username).first()
+        
+        if user and check_password_hash(user.password, password):
+            return jsonify(message='Login successful!')
+        else:
+            return jsonify(message='Login failed. Please check your credentials and try again.'), 401
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    # You can handle the logout logic here if needed
+    return jsonify(message='Logout successful!')
+
+@app.route('/users', methods=['GET'])
+def list_users():
+    users = User.query.all()
+    user_data = []
+    for user in users:
+        user_data.append({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email
+        })
+    return jsonify(users=user_data)
+#%%
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -176,4 +252,4 @@ def predict():
         return jsonify(response_data)
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8000, debug=False)
+    app.run(host='0.0.0.0', port=8000, debug=True)
