@@ -123,13 +123,13 @@ def predict():
         
         # Define weights for the hybrid model
         weight_nlp = 0.7
-        weight_feature = 0.5
+        weight_feature = 0.3
 
         # Combine predictions using weighted averaging
         hybrid_prediction = (weight_nlp * y_pred) + (weight_feature * y)
 
         # Set a dynamic threshold 
-        dynamic_threshold = 0.7
+        dynamic_threshold = 0.8
         
         if hybrid_prediction >= dynamic_threshold:
             urlstatus = "Phishing URL"
