@@ -86,7 +86,7 @@ CORS(app, resources={
 })
 # Load NLP and feature-based models
 model = tf.keras.models.load_model('model_NLP.h5')
-modelfeature = tf.keras.models.load_model('stacked_model.h5')
+modelfeature = tf.keras.models.load_model('modelGRU.h5')
 #%%
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -219,11 +219,26 @@ def predict():
         x = pf.values.reshape(1, 14, 1)
         y = modelfeature.predict(x)
         
-        # Define a threshold for NLP model prediction
-        nlp_threshold = 0.6
+        # # Define a threshold for NLP model prediction
+        # nlp_threshold = 0.6
         
-        # Check if either of the models classify the URL as phishing
-        if y_pred > nlp_threshold or y == 1:
+        # # Check if either of the models classify the URL as phishing
+        # if y_pred > nlp_threshold or y == 1:
+        #     urlstatus = "Phishing URL"
+        # else:
+        #     urlstatus = "Legitimate URL"
+        
+        # Define weights for the hybrid model
+        weight_nlp = 0.7
+        weight_feature = 0.5
+
+        # Combine predictions using weighted averaging
+        hybrid_prediction = (weight_nlp * y_pred) + (weight_feature * y)
+
+        # Set a dynamic threshold 
+        dynamic_threshold = 0.7
+        
+        if hybrid_prediction >= dynamic_threshold:
             urlstatus = "Phishing URL"
         else:
             urlstatus = "Legitimate URL"
