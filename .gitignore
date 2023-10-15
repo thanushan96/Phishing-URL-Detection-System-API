@@ -1,2 +1,4 @@
 __pycache__/
 .idea/
+
+*.h5  # Ignore all .h5 files
