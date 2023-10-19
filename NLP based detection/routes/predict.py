@@ -61,7 +61,9 @@ from sklearn.metrics import accuracy_score
 print(accuracy_score(y_test, classes_y1))
 model.save("model_NLP.h5")
 
+#%%
 
+#%%
 model = tf.keras.models.load_model('model_NLP.h5')
 modelfeature = tf.keras.models.load_model('modelGRU.h5')
 
@@ -93,11 +95,14 @@ def predict():
         else:
             status = "URL is in a valid format:"
             a = 2
+        
+        
             
         # Reading the whitelist
         f = open("whitelist.txt", "r")
         if messages in f.read():
             showmsg1 = "This is legitimate"
+            
             b = 1
         else:
             showmsg1 = "Whitelist does not have any record!"
@@ -119,7 +124,7 @@ def predict():
         pf1 = pd.read_csv('test1.csv')
         pf = pf1.drop(['url'], axis=1).copy()
         x = pf.values.reshape(1, 14, 1)
-        y = modelfeature.predict(x)
+        y = modelfeature.predict(x) 
         
         # Define weights for the hybrid model
         weight_nlp = 0.7
@@ -131,10 +136,14 @@ def predict():
         # Set a dynamic threshold 
         dynamic_threshold = 0.8
         
-        if hybrid_prediction >= dynamic_threshold:
-            urlstatus = "Phishing URL"
+        if b != 1:
+            if hybrid_prediction >= dynamic_threshold:
+                urlstatus = "Phishing URL"
+            else:
+                urlstatus = "Legitimate URL"
         else:
-            urlstatus = "Legitimate URL"
+            # If whitelisted, 
+            urlstatus = "Legitimate URL"        
         
         # Retrieve certificate information using the certificate_info module
         issued_to = certificate_info.get_certificate_issued_to(messages)
